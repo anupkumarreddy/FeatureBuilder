@@ -18,4 +18,9 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
+  {
+    // Shared validation runs in the main process and in the sandboxed renderer.
+    files: ['shared/**/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 )

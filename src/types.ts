@@ -1,20 +1,39 @@
 export type StageStatus = 'not-started' | 'draft' | 'in-review' | 'approved' | 'in-progress' | 'complete' | 'blocked'
 export type Priority = 'Critical' | 'High' | 'Medium' | 'Low'
+export type RequirementType = 'Functional' | 'Performance' | 'Safety' | 'Interface'
+export type RequirementStatus = 'Draft' | 'Approved'
+export type VerificationMethod = 'Simulation' | 'Formal' | 'Emulation' | 'Inspection'
 
 export interface Requirement {
   id: string
   title: string
   description: string
-  type: 'Functional' | 'Performance' | 'Safety' | 'Interface'
-  status: 'Draft' | 'Approved'
+  type: RequirementType
+  status: RequirementStatus
 }
 
 export interface VerificationScenario {
   id: string
   title: string
   description: string
-  method: 'Simulation' | 'Formal' | 'Emulation' | 'Inspection'
+  method: VerificationMethod
   linkedRequirements: string[]
+}
+
+export interface FeatureDesign {
+  architecture: string
+  interfaces: string
+  behavior: string
+  resetAndErrors: string
+  performance: string
+}
+
+export interface FeatureVerification {
+  strategy: string
+  assertions: string
+  coverage: string
+  exclusions: string
+  scenarios: VerificationScenario[]
 }
 
 export interface Feature {
@@ -29,20 +48,8 @@ export interface Feature {
   tags: string[]
   statuses: { specification: StageStatus; design: StageStatus; dv: StageStatus }
   requirements: Requirement[]
-  design: {
-    architecture: string
-    interfaces: string
-    behavior: string
-    resetAndErrors: string
-    performance: string
-  }
-  verification: {
-    strategy: string
-    assertions: string
-    coverage: string
-    exclusions: string
-    scenarios: VerificationScenario[]
-  }
+  design: FeatureDesign
+  verification: FeatureVerification
   dependencies: string[]
   openQuestions: string[]
   updatedAt: string
@@ -59,18 +66,58 @@ export interface Project {
   features: Feature[]
 }
 
+export type IssueField = 'overview' | 'requirements' | 'design' | 'verification' | 'traceability'
+
 export interface ValidationIssue {
   featureId: string
-  field: string
+  field: IssueField
   message: string
   severity: 'warning' | 'error'
 }
 
-export interface DesktopApi {
-  openProject(): Promise<{ project?: Project; projectPath?: string; error?: string } | null>
-  saveProject(project: Project, projectPath: string | null): Promise<{ ok?: boolean; projectPath?: string; error?: string } | null>
-  exportProject(project: Project): Promise<{ ok?: boolean; filePath?: string } | null>
-  getRecentProjects(): Promise<string[]>
+export interface OpenResult {
+  project?: Project
+  projectPath?: string
+  error?: string
+  canceled?: boolean
 }
 
-declare global { interface Window { featureBuilder?: DesktopApi } }
+export interface SaveResult {
+  ok?: boolean
+  projectPath?: string
+  error?: string
+  canceled?: boolean
+}
+
+export interface WriteResult {
+  ok?: boolean
+  filePath?: string
+  error?: string
+  canceled?: boolean
+}
+
+export interface SaveTextRequest {
+  defaultName: string
+  contents: string
+  extension: string
+  description: string
+}
+
+export interface DesktopApi {
+  openProject(): Promise<OpenResult>
+  openRecentProject(projectPath: string): Promise<OpenResult>
+  saveProject(project: Project, projectPath: string | null, options?: { saveAs?: boolean }): Promise<SaveResult>
+  exportProject(project: Project): Promise<WriteResult>
+  saveTextFile(request: SaveTextRequest): Promise<WriteResult>
+  getRecentProjects(): Promise<string[]>
+  forgetRecentProject(projectPath: string): Promise<void>
+  setUnsavedChanges(dirty: boolean): void
+  closeWindow(): void
+  onMenuCommand(handler: (command: string) => void): () => void
+}
+
+declare global {
+  interface Window {
+    featureBuilder?: DesktopApi
+  }
+}
